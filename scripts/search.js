@@ -1,13 +1,13 @@
 // Define basePath to elasticsearch and index
-var basePath = 'https://my-deployment-4d53b4.es.us-east-1.aws.found.io:9243';
-var index = 'elodata'
+var basePath = 'https://elodocuments.es.us-central1.gcp.cloud.es.io:9243';
+var index = 'my_index'
+
 
 var myHeaders = new Headers();
-myHeaders.append("Authorization", "Basic ZWxhc3RpYzpaelZXNXlNQTJNc0N3YUxaNDJBenBqcjQ=");
+myHeaders.append("Authorization", "Basic ZWxhc3RpYzpOQjM5aGxLWnRwdk52cmZVTE1VZ0U2Tzg=");
 myHeaders.append("Content-Type", "application/json");
-myHeaders.append("Access-Control-Allow-Origin", "*");
 
-console.log(myHeaders);
+
   
 
 String.prototype.format = function () {
