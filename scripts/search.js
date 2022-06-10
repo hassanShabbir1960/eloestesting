@@ -1,13 +1,13 @@
 // Define basePath to elasticsearch and index
 var basePath = 'https://elodocuments.es.us-central1.gcp.cloud.es.io:9243';
-var index = 'my_index'
+var index = 'elo_with_page'
 
 
 var myHeaders = new Headers();
 myHeaders.append("Authorization", "Basic ZWxhc3RpYzpOQjM5aGxLWnRwdk52cmZVTE1VZ0U2Tzg=");
 myHeaders.append("Content-Type", "application/json");
 
-
+console.log(myHeaders);
   
 
 String.prototype.format = function () {
@@ -21,7 +21,6 @@ String.prototype.format = function () {
     return typeof args[index] == 'undefined' ? match : args[index];
   });
 };
-
 var loadingdiv = $('#loading');
 var noresults = $('#noresults');
 var resultdiv = $('#results');
@@ -58,10 +57,72 @@ var clean_query = function (query) {
   init = query.indexOf('[');
   fin = query.indexOf(']');
   file_text = (query.substr(init+1,fin-init-1))
+  if (query.includes("FilePath") || query.includes("filepath")){
+    file_text = file_text.replace("FilePath:","")
+    file_text = file_text.replace("filepath:","")
+    filter_body = ',"filter": [{"match": {"Filename": "{0}"}}]'.format(file_text)
+  }
+  if (query.includes("Title") || query.includes("title")){
+    file_text = file_text.replace("Title:","")
+    file_text = file_text.replace("title:","")
+    filter_body = ',"filter": [{"match": {"Title of Work": "{0}"}}]'.format(file_text)
+  }
+  if (query.includes("Date") || query.includes("date")){
+    if (file_text.includes(">=")){
+      console.log("Case 1");
+      file_text = file_text.replace("Date:","")
+      file_text = file_text.replace("date:","")
+      file_text = file_text.replace(">=","")
+      
+      filter_body = ',"filter": [{"range": {"Date & time": {"gte":"{0}" }}}]'.format(file_text)
+    }
+    else if (file_text.includes("<=")){
+      console.log("Case 2");
+      file_text = file_text.replace("Date:","")
+      file_text = file_text.replace("date:","")
+      file_text = file_text.replace("<=","")
+      filter_body = ',"filter": [{"range": {"Date & time": {"lte":"{0}" }}}]'.format(file_text)
+    }
+    else if (file_text.includes(">")){
+      console.log("Case 3");
+      file_text = file_text.replace("Date:","")
+      file_text = file_text.replace("date:","")
+      file_text = file_text.replace(">","")
+      filter_body = ',"filter": [{"range": {"Date & time": {"gt":"{0}" }}}]'.format(file_text)
+    }
+    else if (file_text.includes("<")){
+      console.log("Case 4");
+      file_text = file_text.replace("Date:","")
+      file_text = file_text.replace("date:","")
+      file_text = file_text.replace("<","")
+      filter_body = ',"filter": [{"range": {"Date & time": {"lt":"{0}" }}}]'.format(file_text)
+    }
+    else{
+      console.log("Case 5");
+      file_text = file_text.replace("Date:","")
+      file_text = file_text.replace("date:","")
+      filter_body = ',"filter": [{"range": {"Date & time": {"gte":"{0}" }}}]'.format(file_text)
+    }
+    
+  }
+  if (query.includes("ChapName") || query.includes("chapname")){
+    file_text = file_text.replace("ChapName:","")
+    file_text = file_text.replace("chapname:","")
+    filter_body = ',"filter": [{"match": {"Chapter Name & #": "{0}"}}]'.format(file_text)
+  }
+  if (query.includes("SecNum") || query.includes("secnum")){
+    file_text = file_text.replace("SecNum:","")
+    file_text = file_text.replace("secnum:","")
+    filter_body = ',"filter": [{"match": {"Section_Number_and_Title": "{0}"}}]'.format(file_text)
+  }
+  if (query.includes("CapLtr") || query.includes("capltr")){
+    file_text = file_text.replace("CapLtr:","")
+    file_text = file_text.replace("capltr:","")
+    filter_body = ',"filter": [{"match": {"Capital_Letter_and_Caption": "{0}"}}]'.format(file_text)
+  }
 
-  file_text = file_text.replace("File:","")
-  file_text = file_text.replace("file:","")
-  filter_body = ',"filter": [{"match": {"Filename": "{0}"}}]'.format(file_text)
+
+  
 
   console.log(file_text);
 
@@ -105,11 +166,14 @@ var getResponse = function (query) {
   console.log("This is query",final_body);
   console.log(myHeaders);
  
-  
-  return fetch(url, {
+  let req = new Request(url, {
+    mode: 'cors',
+    credentials: 'include',
+  });
+
+  return fetch(req, {
       method: 'POST',
       headers:myHeaders,
-      mode: 'cors',
       body: final_body
   })
   .then(function(response) {
@@ -172,14 +236,11 @@ async function search() {
   loadingdiv.show();
   // Get the query from the user
   let query = searchbox.val();
-  console.log("KKKKKKKKKKKKKK")
   // Only run a query if the string contains at least three characters
   if (query.length > 2) {
-    console.log("KKKKKKKKKKKdsdsdKKK")
     // Make the HTTP request with the query as a parameter and wait for the JSON results
     let response = await getResponse(query)
     // Get the part of the JSON response that we care about
-    console.log("KzzzzzzKKKKKKKKKKKKK")
     let results = await response['hits']['hits'];
     if (results.length > 0) {
       loadingdiv.hide();
@@ -199,13 +260,14 @@ async function search() {
         text = highlihting(array,uh_text)
         let path = results[item]._source.Filename
         resultdiv.append(" <Strong> <u><p> Match " + i + " : </p</u> </Strong>") 
-        resultdiv.append('<p style="color: #000000">  <u>File path : </u>&emsp;' + path+ '</p> ');
-        resultdiv.append('<p style="color: #000000">  <u>Title of Work :</u>&emsp;' + results[item]._source['Title of Work']+ '</p> ');
-        resultdiv.append('<p style="color: #000000">  <u>Date & time :</u>&emsp;' + results[item]._source['Date & time']+ '</p> ');
-        resultdiv.append('<p style="color: #000000">  <u>Chapter Name & # :</u>&emsp;' + results[item]._source['Chapter Name & #'].replace(/(\r\n|\n|\r)/gm, " ")+ '</p> ');
-        resultdiv.append('<p style="color: #000000">  <u>Section_Number_and_Title:</u>&emsp;' + results[item]._source['Section_Number_and_Title']+ '</p> ');
-        resultdiv.append('<p style="color: #000000">  <u>Capital Letter and Caption:</u>&emsp;' + results[item]._source['Capital_Letter_and_Caption']+ '</p> ');
-       
+        resultdiv.append('<p style="color: #000000">  <u>File path <strong>(FilePath)</strong> : </u>&emsp;' + path+ '</p> ');
+        resultdiv.append('<p style="color: #000000">  <u>Title of Work <strong>(Title)</strong> :</u>&emsp;' + results[item]._source['Title of Work']+ '</p> ');
+        resultdiv.append('<p style="color: #000000">  <u>Date & time <strong>(Date)</strong> :</u>&emsp;' + results[item]._source['Date & time']+ '</p> ');
+        resultdiv.append('<p style="color: #000000">  <u>Chapter Name & # <strong>(ChapName)</strong> :</u>&emsp;' + results[item]._source['Chapter Name & #'].replace(/(\r\n|\n|\r)/gm, " ")+ '</p> ');
+        resultdiv.append('<p style="color: #000000">  <u>Section_Number_and_Title <strong>(SecNum)</strong> :</u>&emsp;' + results[item]._source['Section_Number_and_Title']+ '</p> ');
+        resultdiv.append('<p style="color: #000000">  <u>Capital Letter and Caption <strong>(CapLtr)</strong> :</u>&emsp;' + results[item]._source['Capital_Letter_and_Caption']+ '</p> ');
+        
+        resultdiv.append('<p style="color: #000000">  <u>Page Number / Page Range:</u>&emsp;' + results[item]._source['Page Range']+ '</p> ');
         
         resultdiv.append('<div class="result">' + text+ '</p></div></div>');
         resultdiv.append('===============================================');
@@ -223,3 +285,5 @@ async function search() {
 function imageError(image) {
   image.src = 'images/no-image.png';
 }
+
+
